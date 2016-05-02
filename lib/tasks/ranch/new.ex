@@ -84,9 +84,11 @@ defmodule Mix.Tasks.Ranch.New do
 
     create_directory "config"
     create_file "config/config.exs", config_template(assigns)
+
+    # All these files contents is same
     create_file "config/dev.exs", config_dev_template(assigns)
-    create_file "config/prod.exs", config_prod_template(assigns)
-    create_file "config/test.exs", config_test_template(assigns)
+    create_file "config/prod.exs", config_dev_template(assigns)
+    create_file "config/test.exs", config_dev_template(assigns)
 
     create_directory "lib"
     module_path = Path.join("lib", app)
@@ -120,11 +122,11 @@ defmodule Mix.Tasks.Ranch.New do
   end
 
   defp otp_app(_mod, false) do
-    "    [applications: [:logger]]"
+    "    [applications: [:logger, :ranch]]"
   end
 
   defp otp_app(mod, true) do
-    "    [applications: [:logger],\n     mod: {#{mod}, []}]"
+    "    [applications: [:logger, :ranch],\n     mod: {#{mod}, []}]"
   end
 
   defp do_generate_umbrella(_app, mod, path, _opts) do
@@ -327,34 +329,19 @@ defmodule Mix.Tasks.Ranch.New do
 
   embed_template :config_dev, ~S"""
   use Mix.Config
-  config :<%= @app %>, ranch: [
+  config :<%= @app %>, ranch_tcp: [
     {:profile, true},
-    {:listener_name, :<%= @app %>_listener},
+    {:listener_name, :<%= @app %>_tcp_listener},
     {:acceptors, 5},
-    {:transport, :ranch_ssl},
-    {:transport_options, [port: 443]}
+    {:transport, :ranch_tcp},
+    {:transport_options, [port: 8000]}
   ]
-  """
-
-  embed_template :config_prod, ~S"""
-  use Mix.Config
-  config :<%= @app %>, ranch: [
+  config :<%= @app %>, ranch_ssl: [
     {:profile, true},
-    {:listener_name, :<%= @app %>_listener},
+    {:listener_name, :<%= @app %>_ssl_listener},
     {:acceptors, 5},
     {:transport, :ranch_ssl},
-    {:transport_options, [port: 443]}
-  ]
-  """
-
-  embed_template :config_test, ~S"""
-  use Mix.Config
-  config :<%= @app %>, ranch: [
-    {:profile, true},
-    {:listener_name, :<%= @app %>_listener},
-    {:acceptors, 5},
-    {:transport, :ranch_ssl},
-    {:transport_options, [port: 443]}
+    {:transport_options, [port: 4443]}
   ]
   """
 
@@ -373,14 +360,16 @@ defmodule Mix.Tasks.Ranch.New do
   require Logger
 
   defmodule <%= @mod %>.SslAcceptor do
-    @config Application.get_env(:<%= @app %>, :ranch)
+    @config Application.get_env(:<%= @app %>, :ranch_ssl)
     def start_link do
+      Logger.info "start ssl acceptors"
+
       {:ok, _} = :ranch.start_listener(
         @config[:listener_name],
         @config[:acceptors],
         @config[:transport],
         @config[:transport_options],
-        <%= @mod %>.SslProtocolHander,
+        <%= @mod %>.SslProtocolHandler,
         []
       )
     end
@@ -390,14 +379,16 @@ defmodule Mix.Tasks.Ranch.New do
   require Logger
 
   defmodule <%= @mod %>.TcpAcceptor do
-    @config Application.get_env(:<%= @app %>, :ranch)
+    @config Application.get_env(:<%= @app %>, :ranch_tcp)
     def start_link do
+      Logger.info "start tcp acceptors"
+
       {:ok, _} = :ranch.start_listener(
         @config[:listener_name],
         @config[:acceptors],
         @config[:transport],
         @config[:transport_options],
-        <%= @mod %>.TcpProtocolHander,
+        <%= @mod %>.TcpProtocolHandler,
         []
       )
     end

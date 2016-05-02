@@ -1,0 +1,9 @@
+#!/bin/bash
+
+rm ./ex_ranch_server_tasks-0.0.1.ez
+rm ~/.mix/archives/ex_ranch_server_tasks-0.0.1.ez
+rm -rf a111
+mix compile
+mix archive.build
+mix archive.install
+mix ranch.new a111

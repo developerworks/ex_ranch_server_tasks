@@ -1,0 +1,2 @@
+defmodule ExRanchServerTasks do
+end

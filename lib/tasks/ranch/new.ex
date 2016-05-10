@@ -268,7 +268,9 @@ defmodule Mix.Tasks.Ranch.New do
 
     defp deps do
       [
-        {:ranch, "~> 1.0"}
+        {:ranch, "~> 1.0"},
+        {:apex, "~>0.4.0"}
+        {:exsync, "~> 0.1.2", only: [:dev]}
       ]
     end
   end
@@ -297,7 +299,9 @@ defmodule Mix.Tasks.Ranch.New do
 
     defp deps do
       [
-        {:ranch, "~> 1.0"}
+        {:ranch, "~> 1.0"},
+        {:apex, "~>0.4.0"},
+        {:exsync, "~> 0.1.2", only: [:dev]}
       ]
     end
   end
@@ -316,7 +320,9 @@ defmodule Mix.Tasks.Ranch.New do
 
     defp deps do
       [
-        {:ranch, "~> 1.0"}
+        {:ranch, "~> 1.0"},
+        {:apex, "~>0.4.0"},
+        {:exsync, "~> 0.1.2", only: [:dev]}
       ]
     end
   end
@@ -324,6 +330,12 @@ defmodule Mix.Tasks.Ranch.New do
 
   embed_template :config, ~S"""
   use Mix.Config
+  config :logger, :console,
+    level: :debug,
+    format: "$date $time $metadata[$level] $message\n",
+    handle_sasl_reports: true,
+    handle_otp_reports: true
+
   import_config "#{Mix.env}.exs"
   """
 
@@ -449,7 +461,7 @@ defmodule Mix.Tasks.Ranch.New do
 
   embed_template :tcp_protocol_handler, """
   require Logger
-  defmodule <%= @mod %>.TcpProtocolHander do
+  defmodule <%= @mod %>.TcpProtocolHandler do
     def start_link(ref, socket, transport, opts \\\\ []) do
       :proc_lib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
     end

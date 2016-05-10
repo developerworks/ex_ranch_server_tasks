@@ -269,7 +269,7 @@ defmodule Mix.Tasks.Ranch.New do
     defp deps do
       [
         {:ranch, "~> 1.0"},
-        {:apex, "~>0.4.0"}
+        {:apex, "~>0.4.0"},
         {:exsync, "~> 0.1.2", only: [:dev]}
       ]
     end

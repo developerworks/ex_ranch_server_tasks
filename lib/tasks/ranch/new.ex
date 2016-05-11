@@ -122,11 +122,13 @@ defmodule Mix.Tasks.Ranch.New do
   end
 
   defp otp_app(_mod, false) do
-    "    [applications: [:logger, :ranch]]"
+    "    dev_packages = Mix.env == :dev && [:exsync] || []" <>
+    "    [applications: [:logger, :ranch] ++ dev_packages]"
   end
 
   defp otp_app(mod, true) do
-    "    [applications: [:logger, :ranch],\n     mod: {#{mod}, []}]"
+    "    dev_packages = Mix.env == :dev && [:exsync] || []" <>
+    "    [applications: [:logger, :ranch] ++ dev_packages,\n     mod: {#{mod}, []}]"
   end
 
   defp do_generate_umbrella(_app, mod, path, _opts) do

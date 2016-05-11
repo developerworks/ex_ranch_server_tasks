@@ -98,6 +98,8 @@ defmodule Mix.Tasks.Ranch.New do
     create_file module_path <> "/" <> "tcp_acceptor.ex", tcp_acceptor_template(assigns)
     create_file module_path <> "/" <> "ssl_protocol_handler.ex", ssl_protocol_handler_template(assigns)
     create_file module_path <> "/" <> "tcp_protocol_handler.ex", tcp_protocol_handler_template(assigns)
+    create_file module_path <> "/" <> "supervisor.ex", supervisor_template(assigns)
+    create_file module_path <> "/" <> "supervisor_embed.ex", supervisor_embed_template(assigns)
 
     if opts[:sup] do
       create_file "lib/#{app}.ex", lib_sup_template(assigns)
@@ -123,12 +125,12 @@ defmodule Mix.Tasks.Ranch.New do
 
   defp otp_app(_mod, false) do
     "    dev_packages = Mix.env == :dev && [:exsync] || []\n" <>
-    "    [applications: [:logger, :ranch] ++ dev_packages]"
+    "    [applications: [:logger] ++ dev_packages]"
   end
 
   defp otp_app(mod, true) do
     "    dev_packages = Mix.env == :dev && [:exsync] || []\n" <>
-    "    [applications: [:logger, :ranch] ++ dev_packages,\n     mod: {#{mod}, []}]"
+    "    [applications: [:logger] ++ dev_packages,\n     mod: {#{mod}, []}]"
   end
 
   defp do_generate_umbrella(_app, mod, path, _opts) do
@@ -367,6 +369,65 @@ defmodule Mix.Tasks.Ranch.New do
   end
   """
 
+  embed_template :supervisor, """
+  require Logger
+  defmodule <%= @mod %>.Supervisor do
+    use Supervisor
+
+    def start_link do
+      Logger.debug "Start supervisor."
+      Supervisor.start_link(__MODULE__, [], name: __MODULE__)
+    end
+
+    def init([]) do
+      children = [
+        worker(<%= @mod %>.TcpAcceptor, []),
+      ]
+      Logger.debug "supervisor child spec \#{inspect children}"
+      opts = [strategy: :one_for_one, max_restarts: 3]
+      Logger.debug "strategy \#{inspect opts}"
+      supervise(children, opts)
+    end
+  end
+  """
+
+  embed_template :supervisor_embed, """
+  require Logger
+  defmodule <%= @mod %>.SupervisorEmbed do
+    use Supervisor
+
+    def start_link do
+      Logger.debug "Start supervisor."
+      Supervisor.start_link(__MODULE__, [], name: __MODULE__)
+    end
+
+    def init([]) do
+      children = [
+        ranch_sup(),
+        ranch_embeded_mode_listener()
+      ]
+      Logger.debug "supervisor child spec \#{inspect children}"
+      opts = [strategy: :one_for_one, name: __MODULE__]
+      Logger.debug "strategy \#{inspect opts}"
+      supervise(children, opts)
+    end
+
+    def ranch_sup do
+      supervisor(:ranch_sup, [], [shutdown: 5000, restart: :permanent])
+    end
+
+    def ranch_embeded_mode_listener do
+      :ranch.child_spec(
+        :ranch_embeded_mode_listener,
+        10,
+        :ranch_tcp,
+        [port: 5555],
+        <%= @mod %>.TcpProtocolHandler, []
+      )
+    end
+  end
+  """
+
   embed_template :ssl_acceptor, """
   require Logger
 
@@ -511,15 +572,12 @@ defmodule Mix.Tasks.Ranch.New do
   """
 
   embed_template :lib_sup, """
+  require Logger
   defmodule <%= @mod %> do
     use Application
     def start(_type, _args) do
-      import Supervisor.Spec, warn: false
-      children = [
-        worker(<%= @mod %>.TcpAcceptor, []),
-      ]
-      opts = [strategy: :one_for_one, name: <%= @mod %>.Supervisor]
-      Supervisor.start_link(children, opts)
+      Logger.debug "Start application."
+      <%= @mod %>.SupervisorEmbed.start_link
     end
   end
   """

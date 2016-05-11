@@ -122,12 +122,12 @@ defmodule Mix.Tasks.Ranch.New do
   end
 
   defp otp_app(_mod, false) do
-    "    dev_packages = Mix.env == :dev && [:exsync] || []" <>
+    "    dev_packages = Mix.env == :dev && [:exsync] || []\n" <>
     "    [applications: [:logger, :ranch] ++ dev_packages]"
   end
 
   defp otp_app(mod, true) do
-    "    dev_packages = Mix.env == :dev && [:exsync] || []" <>
+    "    dev_packages = Mix.env == :dev && [:exsync] || []\n" <>
     "    [applications: [:logger, :ranch] ++ dev_packages,\n     mod: {#{mod}, []}]"
   end
 
